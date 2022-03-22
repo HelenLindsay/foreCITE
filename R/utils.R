@@ -1,3 +1,20 @@
+# select_protein ----
+#'@title select_protein
+#'@description given a list of MultiAssayExperiments, select a given protein
+#'and combine data into long format for plotting with ggplot2
+#'@param mas (list(n)) a list of MultiAssayExperiments
+#'@param protein (character(1)) the name of the protein to select
+#'@param assay (character(1)) the name of the assay in the 
+#'MultiAssayExperiments, default "ADT"
+select_protein <- function(mas, protein, assay = "ADT"){
+    res <- lapply(function(x) x[protein, , assay]) # Rows, Samples, Assays
+    # Does this still return a multiassay experiment if only one assay is 
+    # selected?
+}
+
+
+
+
 # cells_to_long ----
 #'@title cells_to_long
 #'@description Take a matrix, convert to data.frame, add rownames as

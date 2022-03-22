@@ -17,6 +17,7 @@ Imports:
     methods,
     rlang
 Suggests:
+    DataVisualizations,
     devtools,
     knitr,
     ggforce,

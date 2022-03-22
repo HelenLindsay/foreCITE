@@ -22,4 +22,10 @@ plotDensity <- function(m, xlab = "Log10(count)", group = FALSE){
 }
 
 
+# Add option for mirrored density plot from package DataVisualizations
+
+# Add flowCytometry style plot
+
+# For titration datasets, dilution on x, intensity of staining on y
+
 
