@@ -1,15 +1,38 @@
 # select_protein ----
-#'@title select_protein
+#'@title select_protein_mas
 #'@description given a list of MultiAssayExperiments, select a given protein
 #'and combine data into long format for plotting with ggplot2
 #'@param mas (list(n)) a list of MultiAssayExperiments
 #'@param protein (character(1)) the name of the protein to select
 #'@param assay (character(1)) the name of the assay in the 
 #'MultiAssayExperiments, default "ADT"
-select_protein <- function(mas, protein, assay = "ADT"){
+select_protein_mas <- function(mas, protein, assay = "ADT"){
     res <- lapply(function(x) x[protein, , assay]) # Rows, Samples, Assays
-    # Does this still return a multiassay experiment if only one assay is 
-    # selected?
+    # Returns a MultiAssayExperiment
+}
+
+
+#'@title select_protein_sce
+#'@description select a row from each of a named list of SingleCellExperiments
+#'@param sce list(n) a list of SingleCellExperiments
+#'@export
+select_protein_sce <- function(sce, protein){
+    if (is.null(names(sce))) {
+        stop("List of SingleCellExperiments must be named")
+    }
+    keep <- vapply(sce, function(x) protein %in% rownames(x), logical(1))
+    if (! any(keep)){
+      stop(sprintf("Protein %s not found in rownames of any dataset"))
+    }
+      
+    sce <- sce[keep]
+    counts <- lapply(sce, function(x) unname(assay(x)[protein, ]))
+    nms <- rep(names(sce), lengths(counts))
+    df <- data.frame(dataset = nms, count = unlist(counts))
+    rownames(df) <- NULL
+
+    return(df)    
+    # keep as sce if colData needed
 }
 
 

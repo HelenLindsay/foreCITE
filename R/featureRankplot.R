@@ -4,6 +4,7 @@
 #'@importFrom ggplot2 theme scale_y_log10 scale_x_log10
 #'@importFrom rlang .data
 #'@importFrom magrittr %>%
+#'@importFrom tidyr pivot_longer
 featureRankplot <- function(data, markers){
 
 

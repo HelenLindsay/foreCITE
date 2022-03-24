@@ -23,4 +23,6 @@ Suggests:
     ggforce,
     roxygen2,
     testthat (>= 3.0.0),
+    tidyverse,
     vdiffr
+RoxygenNote: 7.1.2
