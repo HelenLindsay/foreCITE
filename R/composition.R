@@ -1,10 +1,56 @@
 library("khroma")
+library("ggridges")
+#library("lemon")
 
 rainbow <- colour("smooth rainbow")
 pal30 <- rainbow(30, range = c(0.05, 1))
 
 cite_m <- assay(cite)
 cite_prop <- prop.table(cite_m, margin = 2)
+
+# Set xmin to 1 to be able to see differences in figure, otherwise zeroes
+# dominate
+cumulative_pct <- function(mat, ab = NULL, xmin = 1, xmax = 50){
+    if (is.null(ab)) ab <- colnames(mat)
+    prop_long <- prop.table(mat[, ab], margin = 2)
+    row_means <- names(sort(rowMeans(prop_long)))
+    prop_long <- prop_long %>%
+        tibble::as_tibble(rownames = "ADT") %>%
+        tidyr::pivot_longer(cols = -ADT, names_to = NULL) %>%
+        dplyr::mutate(value = value * 100,
+                      ADT = factor(ADT, levels = rev(row_means)))
+    
+    p <- ggplot(prop_long, aes(x = value, y = 1 - ..y..)) +
+        stat_ecdf() +
+        facet_wrap(~ADT) + 
+        #lemon::facet_rep_wrap(~ADT, repeat.tick.labels = "bottom") +
+        theme_bw() +
+        theme(axis.text.x = element_text(size = 6, angle = 90),
+              axis.text.y = element_text(size = 6),
+              strip.text.x = element_text(size = 6)) +
+        coord_cartesian(xlim = c(xmax, xmin)) +
+        labs(y = "Percentage of cells",
+             x = "Minimum % of reads per cell", 
+             title = "1 - Cumulative distribution of read % per cell by antigen")
+    
+    return(p)
+}
+
+
+# density ridges
+xmax <- 5
+p <- ggplot(prop_long, aes(x = value, y = ADT)) +
+  ggridges::geom_density_ridges() +
+  theme_bw() +
+  theme(axis.text.x = element_text(size = 6, angle = 90),
+        axis.text.y = element_text(size = 6),
+        strip.text.x = element_text(size = 6)) +
+  coord_cartesian(xlim = c(xmin, xmax)) +
+  labs(y = "Density",
+       x = "% of reads within a cell")
+
+
+
 
 
 
