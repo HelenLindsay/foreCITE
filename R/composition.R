@@ -40,7 +40,7 @@ cumulative_pct <- function(mat, ab = NULL, xmin = 1, xmax = 50){
 # density ridges
 xmax <- 5
 p <- ggplot(prop_long, aes(x = value, y = ADT)) +
-  ggridges::geom_density_ridges() +
+  ggridges::geom_density_ridges(scale = 5) +
   theme_bw() +
   theme(axis.text.x = element_text(size = 6, angle = 90),
         axis.text.y = element_text(size = 6),
