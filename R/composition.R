@@ -1,6 +1,8 @@
 library("khroma")
 library("ggridges")
-#library("lemon")
+#library("lemon") # put x axis on every facet
+
+# first plot for public data - count distribution 
 
 rainbow <- colour("smooth rainbow")
 pal30 <- rainbow(30, range = c(0.05, 1))
@@ -8,8 +10,10 @@ pal30 <- rainbow(30, range = c(0.05, 1))
 cite_m <- assay(cite)
 cite_prop <- prop.table(cite_m, margin = 2)
 
+# Cumulative pct -----
 # Set xmin to 1 to be able to see differences in figure, otherwise zeroes
 # dominate
+# Don't recommend using this on a personal computer above about ~100000 cells 
 cumulative_pct <- function(mat, ab = NULL, xmin = 1, xmax = 50){
     if (is.null(ab)) ab <- colnames(mat)
     prop_long <- prop.table(mat[, ab], margin = 2)
@@ -25,7 +29,7 @@ cumulative_pct <- function(mat, ab = NULL, xmin = 1, xmax = 50){
         facet_wrap(~ADT) + 
         #lemon::facet_rep_wrap(~ADT, repeat.tick.labels = "bottom") +
         theme_bw() +
-        theme(axis.text.x = element_text(size = 6, angle = 90),
+        theme(axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5),
               axis.text.y = element_text(size = 6),
               strip.text.x = element_text(size = 6)) +
         coord_cartesian(xlim = c(xmax, xmin)) +
@@ -37,7 +41,8 @@ cumulative_pct <- function(mat, ab = NULL, xmin = 1, xmax = 50){
 }
 
 
-# density ridges
+# density ridges -----
+# doesn't really work, most are too stacked at the 0
 xmax <- 5
 p <- ggplot(prop_long, aes(x = value, y = ADT)) +
   ggridges::geom_density_ridges(scale = 5) +
@@ -49,83 +54,183 @@ p <- ggplot(prop_long, aes(x = value, y = ADT)) +
   labs(y = "Density",
        x = "% of reads within a cell")
 
+# distribution of counts coloured by percentage -----
+# or count versus percentage in cell
 
 
+#
 
 
-
+# order top antibodies (dplyr method better) -----
 ab_ords <- apply(cite_prop, 2, function(x){
     order(x[x > 0.05], decreasing = TRUE)
 })
 
-
-
-
-
-
-#min_adt_per_cell <- 
-#read_cutoff <- 10
-#cite_m[cite_m < read_cutoff] <- 0
-
-cite_prop <- prop.table(cite_m, margin = 2)
-
-
+# get ranks above percentage cutoff -----
 ranks <- apply(-cite_prop, 2, rank)
 frac_in_cell <- 0.05
 ranks[cite_prop < frac_in_cell] <- 0
 
-# percentage accounted for by top ranked antibody?
+# plotting order -----
 
-rank_to_idx
-
-
-
-
-
+# row means
 ab_ord <- order(rowMeans(cite_prop), decreasing = TRUE)
 
+# Plot proportion of reads in different contexts -----
+frac_in_cell <- 0.05
+min_cells <- 50
 
-#max_val <- apply(cite_prop, 2, max)
+## problem - this ignores all the times the marker occurs in the context 
+## at less than the proportion
+#prop_long <- as_tibble(cite_prop, rownames = "ADT") %>%
+#    tidyr::pivot_longer(cols = -ADT) %>%
+#    dplyr::filter(value >= frac_in_cell) %>%
+#    dplyr::group_by(name) %>%
+#    dplyr::mutate(context = paste(sort(ADT, na.last = NA), collapse = "+")) %>%
 
-# Which is the max and how much does it take up?
-#orders <- apply(cite_prop, 2, function(x) order(x, decreasing = TRUE))
+# this will never be more than number of markers in context because rows are 
+# filtered for minimum marker proportion
+#    dplyr::group_by(name, context) %>%
+#    dplyr::mutate(n_cells = n(),
+#                  mean_prop = mean(value)) %>%
+#    dplyr::filter(n >= min_cells)
+
+
+# Want the proportion of times the marker reaches the threshold within a given
+# context
+
+n_cells <- ncol(cite_prop)
+
+# These are contexts where the marker ever reaches proportion threshold
+prop_long <- as_tibble(cite_prop, rownames = "ADT") %>%
+    tidyr::pivot_longer(cols = -ADT)
+
+# All cells appear in all_contexts table because by def'n one marker must be
+# non-zero 
+all_contexts <- prop_long %>%
+    dplyr::filter(value >= frac_in_cell) %>%
+    dplyr::group_by(name) %>%
+    dplyr::mutate(context = paste(sort(ADT, na.last = NA), collapse = "+")) %>%
+    dplyr::group_by(context) %>%
+    dplyr::mutate(n_cells = n_distinct(name))
+    
+
+
+    # Contexts with and without a high background marker
+
+    # In how many contexts does this marker reach the proportion cutoff?
+    
+    # We now want to look at the proportion of times the marker reaches
+    # threshold in this context.
+    
+    # (if all the other markers are expressed
+    # how often do we get marker of interest proportion at least as high
+    # verusus in other contexts)    
+
+
+
+# Select a marker and plot - most have too many contexts
+marker <- "IGM"
+test <- prop_long %>%
+    dplyr::filter(ADT == "CD64") %>%
+    dplyr::arrange(mean_prop)# %>%
+    #dplyr::mutate(context = factor(context, levels = unique(context))) 
+    
+ggplot(test, aes(x = value, y = context)) +
+    ggridges::geom_density_ridges(scale = 2) +
+    theme_bw() +
+    theme(axis.text.y = element_text(size = 4)) +
+    labs(x = "Proportion of reads", y = "Context",
+         title = sprintf("Distribution of read proportions for %s", marker))
+
+
+# Table of top ranking antibody combinations -----
+
+
+
+
+
+
+
 ranks <- apply(-cite_prop, 2, rank, ties.method = "random")
 frac_in_cell <- 0.05
 ranks[cite_prop < frac_in_cell] <- 0
 
+n_contexts <- 3
+n_cn <- sprintf("r%s", seq_len(n_contexts))
+    
 group_by_top <- function(df, n){
-    cn <- as.character(seq_len(n))
-    dplyr::group_by(df, )
+    group_by(df, !!!syms(sprintf("r%s", seq_len(n))))
 }
+
 
 rank_long <- as_tibble(ranks, rownames = "ADT") %>%
     tidyr::pivot_longer(cols = -ADT) %>%
     dplyr::filter(! value == 0) %>%
     tidyr::pivot_wider(names_from = value,
                        values_from = ADT,
-                       names_prefix = "r")
-
-rank_long %>%
-    group_by(!!!syms(sprintf("r%s", 1:4))) %>%
-    summarise(n = n()) %>%
-    arrange(desc(n)) 
+                       names_prefix = "r") 
 
 
-# top phenotypes by percentage reads, colour by average percentage of reads
-# when it has that rank
+#top_contexts <- rank_long %>%
+#    group_by(!!!syms(sprintf("r%s", seq_len(n_contexts)))) %>%
+#    summarise(n = n()) %>%
+#    arrange(desc(n)) %>%
+#    tidyr::unite("context_id", !!!syms(n_cn), sep = "+", na.rm = TRUE)
 
-# try rounding to nearest percentage and then arranging for group order
-# round(test* 100, 0)
+#rank_long <- rank_long %>%
+#    # Add an ID column
+#    #tidyr::unite("context_id", !!!syms(n_cn),
+#    #             remove = FALSE, sep = "+", na.rm = TRUE) %>%
+#
+#   rowwise() %>%
+#   dplyr::mutate(context_id = 
+#                      paste(do.call(sort, !!!syms(n_cn)), sep = "+"))
+#    
+#    # select just the name and context id
+#    dplyr::select(name, context_id)
+ 
 
-# or distribution of percentages by marker
+
+   
+
+min_reads <- 5
+
+marker_by_context <- function(cite_m, marker, min_reads, min_cells = 50, 
+                              n_contexts = 20){
+    rr <- t(cite_m[marker, cite_m[marker,] >= min_reads, drop = FALSE]) 
+    rr <- as_tibble(rr, rownames = "name") %>%
+        dplyr::left_join(rank_long) 
+    
+    top_contexts <- rr %>%
+        dplyr::group_by(context_id) %>%
+        dplyr::summarise(n = n(), mean_exp = mean(!!sym(marker))) %>%
+        dplyr::filter(n >= min_cells) %>%
+        dplyr::arrange(desc(n)) %>%
+        head(n_contexts) %>%
+        dplyr::pull(context_id)
+    
+    rr <- rr %>%
+        dplyr::filter(context_id %in% top_contexts)
+    
+    p <- ggplot(rr, aes(x = !!ensym(marker), y = context_id)) +
+        ggridges::geom_density_ridges(scale = 2) +
+        coord_cartesian() +
+        theme_bw() +
+        theme(axis.text.x = element_text(size = 6, angle = 90),
+              axis.text.y = element_text(size = 6),
+              strip.text.x = element_text(size = 6)) +
+        labs(y = "Density",
+             x = "Read count")
+    
+}
 
 
 
 
 
 
-# Group by the top n, combo, subsample from each group
-# arrange by rowsum?
+# Subsample cells, cluster ------
 
 rr <- ranks
 rr[rr > 4] = 0
@@ -134,7 +239,6 @@ rank_combs <- unique(rr, MARGIN = 2)
 
 ## cluster the prop table
 dd <- dist(t(cite_prop))
-
 
 n <- 100
 ss <- sample(seq_len(ncol(cite_m)), n)
@@ -161,7 +265,7 @@ hc <- hclust(dd)
 keep_ab <- names(sort(rowSums(cite_prop > 0.05), decreasing = TRUE)[1:20])
 col_ord <- order(test_prop[keep_ab[1],], decreasing = TRUE)
 
-# Transform and plot -----
+# Barplot top percentages -----
 
 prop_long <- as_tibble(test_prop[keep_ab, col_ord], rownames = "ADT") %>%
     tidyr::pivot_longer(cols = -ADT) %>%
@@ -170,12 +274,6 @@ prop_long <- as_tibble(test_prop[keep_ab, col_ord], rownames = "ADT") %>%
                   ADT = factor(ADT, levels = rev(keep_ab)),
                   name = factor(name, levels = hc$labels[hc$order]))
                   
-                  
-                  
-               #   across(where(is.character), as.factor))
-    
-
-
 ggplot(prop_long, aes(x = name, y = Percentage, fill = ADT)) +
     geom_bar(position = "stack",
              stat = "identity") +
@@ -188,16 +286,25 @@ ggplot(prop_long, aes(x = name, y = Percentage, fill = ADT)) +
     scale_y_continuous(expand = c(0, 0))
 
 
-# Group by number of markers expressed
-
-
+# Notes -----
 
 # Cutoff?
 
 # Do you need a certain umi count before you see an antibody
 # (because others are soaking up read space)
 
+# Are "background" reads evenly distributed?
 
 # Typical cell gating schema?
 
 
+# top phenotypes by percentage reads, colour by average percentage of reads
+# when it has that rank
+
+# try rounding to nearest percentage and then arranging for group order
+# round(test* 100, 0)
+
+# Group by the top n, combo, subsample from each group
+# arrange by rowsum?
+
+# Amongst cells that have the same combination of markers, do we see 
