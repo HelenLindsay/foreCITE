@@ -71,3 +71,15 @@ print_paginated <- function(p, facet, npages = 6, nrow = 3, ncol = 3, ...){
 }
 
 
+# rainbow palette ----
+#'Get a rainbow palette with n categories
+#'
+#'@description Light wrapper for khroma "smooth rainbow" palette
+#'@param n Number of categories
+rainbow_pal <- function(n){
+  rainbow <- khroma::colour("smooth rainbow")
+  rainbow(n, range = c(0.05, 1))
+}
+
+
+

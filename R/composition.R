@@ -1,80 +1,32 @@
-library("khroma")
-library("ggridges")
 #library("lemon") # put x axis on every facet
-
-# first plot for public data - count distribution 
-
-rainbow <- colour("smooth rainbow")
-pal30 <- rainbow(30, range = c(0.05, 1))
-
-cite_m <- assay(cite)
-cite_prop <- prop.table(cite_m, margin = 2)
-
-# Cumulative pct -----
-# Set xmin to 1 to be able to see differences in figure, otherwise zeroes
-# dominate
-# Don't recommend using this on a personal computer above about ~100000 cells 
-cumulative_pct <- function(mat, ab = NULL, xmin = 1, xmax = 50){
-    if (is.null(ab)) ab <- colnames(mat)
-    prop_long <- prop.table(mat[, ab], margin = 2)
-    row_means <- names(sort(rowMeans(prop_long)))
-    prop_long <- prop_long %>%
-        tibble::as_tibble(rownames = "ADT") %>%
-        tidyr::pivot_longer(cols = -ADT, names_to = NULL) %>%
-        dplyr::mutate(value = value * 100,
-                      ADT = factor(ADT, levels = rev(row_means)))
-    
-    p <- ggplot(prop_long, aes(x = value, y = 1 - ..y..)) +
-        stat_ecdf() +
-        facet_wrap(~ADT) + 
-        #lemon::facet_rep_wrap(~ADT, repeat.tick.labels = "bottom") +
-        theme_bw() +
-        theme(axis.text.x = element_text(size = 6, angle = 90, vjust = 0.5),
-              axis.text.y = element_text(size = 6),
-              strip.text.x = element_text(size = 6)) +
-        coord_cartesian(xlim = c(xmax, xmin)) +
-        labs(y = "Percentage of cells",
-             x = "Minimum % of reads per cell", 
-             title = "1 - Cumulative distribution of read % per cell by antigen")
-    
-    return(p)
-}
-
 
 # density ridges -----
 # doesn't really work, most are too stacked at the 0
-xmax <- 5
-p <- ggplot(prop_long, aes(x = value, y = ADT)) +
-  ggridges::geom_density_ridges(scale = 5) +
-  theme_bw() +
-  theme(axis.text.x = element_text(size = 6, angle = 90),
-        axis.text.y = element_text(size = 6),
-        strip.text.x = element_text(size = 6)) +
-  coord_cartesian(xlim = c(xmin, xmax)) +
-  labs(y = "Density",
-       x = "% of reads within a cell")
+density_ridge_plot <- function(prop_long){
+    xmax <- 5
+    p <- ggplot(prop_long, aes(x = value, y = ADT)) +
+      ggridges::geom_density_ridges(scale = 5) +
+      theme_bw() +
+      theme(axis.text.x = element_text(size = 6, angle = 90),
+            axis.text.y = element_text(size = 6),
+            strip.text.x = element_text(size = 6)) +
+      coord_cartesian(xlim = c(xmin, xmax)) +
+      labs(y = "Density",
+           x = "% of reads within a cell")
+}
 
 # distribution of counts coloured by percentage -----
 # or count versus percentage in cell
 
 
-#
-
-
 # order top antibodies (dplyr method better) -----
-ab_ords <- apply(cite_prop, 2, function(x){
-    order(x[x > 0.05], decreasing = TRUE)
-})
+#ab_ords <- apply(cite_prop, 2, function(x){
+#    order(x[x > 0.05], decreasing = TRUE)
+#})
 
 # get ranks above percentage cutoff -----
-ranks <- apply(-cite_prop, 2, rank)
-frac_in_cell <- 0.05
-ranks[cite_prop < frac_in_cell] <- 0
+#ranks <- apply(-cite_prop, 2, rank)
 
-# plotting order -----
-
-# row means
-ab_ord <- order(rowMeans(cite_prop), decreasing = TRUE)
 
 # Plot proportion of reads in different contexts -----
 frac_in_cell <- 0.05
