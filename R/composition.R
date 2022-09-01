@@ -15,6 +15,16 @@ density_ridge_plot <- function(prop_long){
            x = "% of reads within a cell")
 }
 
+
+#dplyr::mutate(context =
+#                  paste(sort(ADT, na.last = NA), collapse = "+")) %>%
+
+#dplyr::group_by(context) %>%
+#    dplyr::mutate(n_cells = n_distinct(name),
+#                  mean_prop = mean(value))    
+
+
+
 # distribution of counts coloured by percentage -----
 # or count versus percentage in cell
 
@@ -29,8 +39,8 @@ density_ridge_plot <- function(prop_long){
 
 
 # Plot proportion of reads in different contexts -----
-frac_in_cell <- 0.05
-min_cells <- 50
+#frac_in_cell <- 0.05
+#min_cells <- 10
 
 ## problem - this ignores all the times the marker occurs in the context 
 ## at less than the proportion
@@ -51,23 +61,9 @@ min_cells <- 50
 # Want the proportion of times the marker reaches the threshold within a given
 # context
 
-n_cells <- ncol(cite_prop)
+#n_cells <- ncol(cite_prop)
 
-# These are contexts where the marker ever reaches proportion threshold
-prop_long <- as_tibble(cite_prop, rownames = "ADT") %>%
-    tidyr::pivot_longer(cols = -ADT)
-
-# All cells appear in all_contexts table because by def'n one marker must be
-# non-zero 
-all_contexts <- prop_long %>%
-    dplyr::filter(value >= frac_in_cell) %>%
-    dplyr::group_by(name) %>%
-    dplyr::mutate(context = paste(sort(ADT, na.last = NA), collapse = "+")) %>%
-    dplyr::group_by(context) %>%
-    dplyr::mutate(n_cells = n_distinct(name))
     
-
-
     # Contexts with and without a high background marker
 
     # In how many contexts does this marker reach the proportion cutoff?
@@ -78,6 +74,9 @@ all_contexts <- prop_long %>%
     # (if all the other markers are expressed
     # how often do we get marker of interest proportion at least as high
     # verusus in other contexts)    
+
+marker <- "CD25"
+
 
 
 
@@ -148,7 +147,7 @@ rank_long <- as_tibble(ranks, rownames = "ADT") %>%
 
 min_reads <- 5
 
-marker_by_context <- function(cite_m, marker, min_reads, min_cells = 50, 
+marker_by_context <- function(cite_m, marker, min_reads, min_cells = 10, 
                               n_contexts = 20){
     rr <- t(cite_m[marker, cite_m[marker,] >= min_reads, drop = FALSE]) 
     rr <- as_tibble(rr, rownames = "name") %>%
@@ -260,3 +259,5 @@ ggplot(prop_long, aes(x = name, y = Percentage, fill = ADT)) +
 # arrange by rowsum?
 
 # Amongst cells that have the same combination of markers, do we see 
+
+# Percentage reads rna size

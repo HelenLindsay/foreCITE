@@ -6,6 +6,8 @@
 #'@param xlab character(1) x-axis label
 #'@param group logical(1) Should each row be plotted separately?  If TRUE,
 #'each row will be plotted in a separate colour (Default: FALSE)
+#'@return a ggplot2 plot
+
 plotDensity <- function(m, xlab = "Log10(count)", group = FALSE){
     m_long <- cells_to_long(m)
     if (isTRUE(group)){
@@ -19,6 +21,7 @@ plotDensity <- function(m, xlab = "Log10(count)", group = FALSE){
         scale_x_log10() +
         labs(x = xlab) +
         theme_bw()
+    return(p)
 }
 
 
