@@ -15,91 +15,15 @@ density_ridge_plot <- function(prop_long){
            x = "% of reads within a cell")
 }
 
-
-#dplyr::mutate(context =
-#                  paste(sort(ADT, na.last = NA), collapse = "+")) %>%
-
-#dplyr::group_by(context) %>%
-#    dplyr::mutate(n_cells = n_distinct(name),
-#                  mean_prop = mean(value))    
-
-
-
 # distribution of counts coloured by percentage -----
 # or count versus percentage in cell
 
-
-# order top antibodies (dplyr method better) -----
-#ab_ords <- apply(cite_prop, 2, function(x){
-#    order(x[x > 0.05], decreasing = TRUE)
-#})
-
-# get ranks above percentage cutoff -----
-#ranks <- apply(-cite_prop, 2, rank)
-
-
 # Plot proportion of reads in different contexts -----
-#frac_in_cell <- 0.05
-#min_cells <- 10
 
-## problem - this ignores all the times the marker occurs in the context 
-## at less than the proportion
-#prop_long <- as_tibble(cite_prop, rownames = "ADT") %>%
-#    tidyr::pivot_longer(cols = -ADT) %>%
-#    dplyr::filter(value >= frac_in_cell) %>%
-#    dplyr::group_by(name) %>%
-#    dplyr::mutate(context = paste(sort(ADT, na.last = NA), collapse = "+")) %>%
-
-# this will never be more than number of markers in context because rows are 
-# filtered for minimum marker proportion
-#    dplyr::group_by(name, context) %>%
-#    dplyr::mutate(n_cells = n(),
-#                  mean_prop = mean(value)) %>%
-#    dplyr::filter(n >= min_cells)
-
-
-# Want the proportion of times the marker reaches the threshold within a given
-# context
-
-#n_cells <- ncol(cite_prop)
-
-    
-    # Contexts with and without a high background marker
-
-    # In how many contexts does this marker reach the proportion cutoff?
-    
-    # We now want to look at the proportion of times the marker reaches
-    # threshold in this context.
-    
-    # (if all the other markers are expressed
-    # how often do we get marker of interest proportion at least as high
-    # verusus in other contexts)    
-
-marker <- "CD25"
-
-
-
-
-# Select a marker and plot - most have too many contexts
-marker <- "IGM"
-test <- prop_long %>%
-    dplyr::filter(ADT == "CD64") %>%
-    dplyr::arrange(mean_prop)# %>%
-    #dplyr::mutate(context = factor(context, levels = unique(context))) 
-    
-ggplot(test, aes(x = value, y = context)) +
-    ggridges::geom_density_ridges(scale = 2) +
-    theme_bw() +
-    theme(axis.text.y = element_text(size = 4)) +
-    labs(x = "Proportion of reads", y = "Context",
-         title = sprintf("Distribution of read proportions for %s", marker))
+# Contexts with and without a high background marker
 
 
 # Table of top ranking antibody combinations -----
-
-
-
-
 
 
 
@@ -142,14 +66,13 @@ rank_long <- as_tibble(ranks, rownames = "ADT") %>%
 #    dplyr::select(name, context_id)
  
 
-
-   
-
-min_reads <- 5
-
+# marker_by_context ----
+# precursor to plot contexts?
 marker_by_context <- function(cite_m, marker, min_reads, min_cells = 10, 
                               n_contexts = 20){
+    # Filter raw for min reads, make marker a column, cells rows
     rr <- t(cite_m[marker, cite_m[marker,] >= min_reads, drop = FALSE]) 
+    # join in ranks
     rr <- as_tibble(rr, rownames = "name") %>%
         dplyr::left_join(rank_long) 
     
@@ -175,9 +98,6 @@ marker_by_context <- function(cite_m, marker, min_reads, min_cells = 10,
              x = "Read count")
     
 }
-
-
-
 
 
 
@@ -247,7 +167,6 @@ ggplot(prop_long, aes(x = name, y = Percentage, fill = ADT)) +
 # Are "background" reads evenly distributed?
 
 # Typical cell gating schema?
-
 
 # top phenotypes by percentage reads, colour by average percentage of reads
 # when it has that rank
