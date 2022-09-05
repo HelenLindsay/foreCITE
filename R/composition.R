@@ -26,6 +26,8 @@ density_ridge_plot <- function(prop_long){
 # Table of top ranking antibody combinations -----
 
 
+scratch <- function(){
+
 
 ranks <- apply(-cite_prop, 2, rank, ties.method = "random")
 frac_in_cell <- 0.05
@@ -156,6 +158,7 @@ ggplot(prop_long, aes(x = name, y = Percentage, fill = ADT)) +
     scale_fill_manual(values = rev(pal30)) + 
     scale_y_continuous(expand = c(0, 0))
 
+}
 
 # Notes -----
 

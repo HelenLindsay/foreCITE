@@ -1,17 +1,3 @@
-# get_prop_long ----
-# get prop.table, convert to long format
-get_prop_long <- function(mat){
-    mat <- mat[, colSums(mat) > 0]
-    
-    # Get read proportions
-    prop_long <- prop.table(mat, margin = 2) %>%
-        tibble::as_tibble(rownames = "ADT") %>%
-        tidyr::pivot_longer(cols = -ADT)
-    
-    return(prop_long)
-}
-
-
 # getContexts -----
 #'
 #'@title Get antibody combinations in which a marker occurs
