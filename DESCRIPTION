@@ -1,4 +1,4 @@
-Package: CITEvis
+Package: foreCITE
 Type: Package
 Title: Tools for visualising CITE-seq data
 Version: 0.1.0

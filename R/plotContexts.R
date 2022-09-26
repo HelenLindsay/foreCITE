@@ -10,6 +10,7 @@
 #'(Default: 5)
 #'@param min_cells Number of cells in which a marker should reach the minimum
 #'percentage
+#'@export
 getContexts <- function(mat, pct_threshold = 5, min_cells = 5){
 
     prop_long <- get_prop_long(mat)
@@ -30,7 +31,7 @@ getContexts <- function(mat, pct_threshold = 5, min_cells = 5){
         
         # At least min_cells must have all markers present together
         dplyr::group_by(context, name) %>%
-        # Select cells there all markers in context meet cutoff 
+        # Select cells where all markers in context meet cutoff 
         dplyr::filter(dplyr::n_distinct(ADT) == n_markers) %>%
         dplyr::group_by(context) %>%
         # At least (min_cells) must remain per context
