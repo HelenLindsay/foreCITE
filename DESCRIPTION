@@ -1,10 +1,11 @@
-Package: CITEvis
+Package: foreCITE
 Type: Package
 Title: Tools for visualising CITE-seq data
 Version: 0.1.0
 Author: Helen Lindsay
 Maintainer: Helen Lindsay <helen.lindsay@chuv.ch>
-Description: Quick, exploratory plots for CITE-seq data.
+Description: Quick, exploratory plots for initial quality control of 
+    CITE-seq data.
 License: AGPL (>= 3)
 Encoding: UTF-8
 LazyData: true
