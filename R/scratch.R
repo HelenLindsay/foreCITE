@@ -11,29 +11,38 @@ wrtContext <- function(mat, marker, marker_pct = 0.2, pct_cutoff = 0.05){
 
 # Idea - noise reads should be equally distributed between contexts
 
-plotNoiseDistn <- function(mat, pct_threshold = 20){
-    pos_contexts <- getContexts(mat, pct_threshold = 20)
+plotNoiseDistn <- function(mat, pct_threshold = 20, n_per_cluster = 10){
+    # Filter rows and columns of matrix first?s
+    
+    # note redundant, get contexts also calculates prop t
+    pos_contexts <- foreCITE:::getContexts(mat, pct_threshold = pct_threshold)
     prop_t <- get_prop(mat)
+    # Remove antibodies with all zeroes
     prop_t <- prop_t[rowSums(prop_t[, 2:ncol(prop_t)]) > 0, ]
+    
     cell_to_cxt <- pos_contexts %>%
         dplyr::select(name, context) %>%
         unique()
     cn_to_cxt <- match(cell_to_cxt$name, colnames(prop_t))
     colnames(prop_t)[cn_to_cxt] <- cell_to_cxt$context
+    
+    # Collect all ungrouped cells into a "None" category
     # As it's a tibble, the first column is the marker name
     colnames(prop_t)[setdiff(seq_len(ncol(prop_t)), c(1, cn_to_cxt))] <- "None"
-    prop_t <- t(as.matrix(prop_t))
+
     prop_long <- tidyr::pivot_longer(prop_t, cols = -ADT) %>%
         dplyr::group_by(ADT, name) %>%
         dplyr::mutate(context_mean = mean(value))
     
-    
+    # Select top n per cluster, get mean (idea: are there cells which are close)
     prop_long_cut <- prop_long %>%
-        dplyr::slice_max(value, n = 10) %>%
+        dplyr::slice_max(value, n = n_per_cluster) %>%
         dplyr::summarise(sliced_mean = mean(value))
     
     
     # hacky way to get clustering order rather than making a proper heatmap
+    
+    # split by difference in mean in vs out of context
     
     prop_cut <- prop_long_cut %>%
         tidyr::pivot_wider(names_from = name,
@@ -54,17 +63,25 @@ plotNoiseDistn <- function(mat, pct_threshold = 20){
     spectral <- colorRampPalette(
         rev(RColorBrewer::brewer.pal(11, "Spectral")))
     
-    
-    ggplot(prop_long_cut, aes(x = name, y = ADT, fill = sliced_mean)) +
+    p <- ggplot(prop_long_cut, aes(x = name, y = ADT, fill = sliced_mean)) +
         geom_tile() +
         theme_bw() +
         scale_fill_gradientn(colors = spectral(100),
                              limits = c(0, 0.2),
                              oob = scales::squish) +
+        scale_x_discrete(position = "top") +
         theme(axis.text.x = element_text(angle = 90, size = 4,
-                                         hjust = 1, vjust = 0.5),
-              axis.text.y = element_text(size = 6))
+                                         hjust = 0, vjust = 0.5),
+              axis.text.y = element_text(size = 6)) + 
+        labs(y = "Context")
+    
+   return(p)    
 }
+
+# Idea for reassigning:
+# - does the child context exist?
+# if yes, is a parent cell close (in the "positive" markers only) 
+
 
 # If a context has a low positive peak, background should be high but
 # balanced across markers (for witkowski - CD8A)

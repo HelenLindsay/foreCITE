@@ -21,9 +21,12 @@ getContexts <- function(mat, pct_threshold = 5, min_cells = 5){
     # must be non-zero 
     contexts <- prop_long %>%
         dplyr::filter(value >= pct_threshold/100.0) %>%
-        dplyr::group_by(name) %>%
+        dplyr::group_by(name) %>% # Here name = cell
         
-        # TO DO: speedup by not pasting until necessary? 
+        # TO DO: speedup by not pasting until necessary? list(unique(ADT))
+        # Note that sorting here is alphabetic
+        
+        # Order by - how many contexts it appears in?
         dplyr::mutate(context = 
                           paste(sort(ADT, na.last = NA), collapse = "+"),
                       n_markers = length(! is.na(ADT)),
