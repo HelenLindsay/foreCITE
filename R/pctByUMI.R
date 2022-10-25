@@ -29,9 +29,9 @@ pctByUmi <- function(mat, rna_umi){
 #breaks <- seq(0,1, by = 0.05)
 #pt_c <- cut(pt_c, breaks)
 
-pt_marker <- pt_long %>% dplyr::filter(ADT == marker)
-pt_marker <- dplyr::rename(pt_marker, marker_value = value) %>%
-    dplyr::select(-ADT)
-pt_long <- pt_long %>% left_join(pt_marker)
-pt_long <- pt_long %>% dplyr::mutate(marker_value = 
-                                         cut(marker_value, breaks = breaks))
+#pt_marker <- pt_long %>% dplyr::filter(ADT == marker)
+#pt_marker <- dplyr::rename(pt_marker, marker_value = value) %>%
+#    dplyr::select(-ADT)
+#pt_long <- pt_long %>% left_join(pt_marker)
+#pt_long <- pt_long %>% dplyr::mutate(marker_value = 
+#                                         cut(marker_value, breaks = breaks))

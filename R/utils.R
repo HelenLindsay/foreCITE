@@ -82,24 +82,39 @@ rainbow_pal <- function(n){
 }
 
 
-
-
-
-
-# get_prop_long ----
-# Get prop.table - wrapper to ensure no all-zero columns and add rownames
-get_prop <- function(mat){
-    # Filter out cells with no counts
-    mat <- mat[, colSums(mat) > 0]
+# get_prop ----
+# Get prop.table - wrapper to ensure no all-zero columns or rows
+#@param row_sums Minimum value for row sums (Default: 0)
+#@param minimum value for column sums (Default: 10)
+#@param filter_pct optionally, require that markers must reach filter_pct
+# in at least filter_ncells
+#@param filter_ncells Used in conjunction with filter_pct
+get_prop <- function(mat, row_sums = 0, col_sums = 10,
+                     filter_pct = NA, filter_ncells = NA){
+    # Filter out ADTs or cells with no counts
+    mat <- mat[rowSums(mat) > row_sums, colSums(mat) >= col_sums]
     
     # Get read proportions
-    prop_t <- prop.table(mat, margin = 2) %>%
-        tibble::as_tibble(rownames = "ADT")
+    prop_t <- proportions(mat, margin = 2) 
+    
+    # Filter by minimum percentage in minimum number of cells
+    if (! is.na(filter_pct) & ! is.na(filter_ncells)){
+        if (! (filter_pct >= 0 & filter_pct <= 0)){
+            stop("filter_pct should be a percent, i.e. between 0 and 100")
+        }
+        prop_t <- prop_t[rowSums(prop_t >= filter_pct/100) >= filter_ncells, 
+                         , drop= FALSE]
+    }
+    
     return(prop_t)
 }
 
 
-# Convert prop.table to long format
-get_prop_long <- function(mat){
-    return(get_prop(mat) %>% tidyr::pivot_longer(cols = -ADT))
+# get_prop_long ----
+# Convert prop.table to long tibble format
+#@param ... arguments for get_prop
+get_prop_long <- function(mat, ...){
+    result <- get_prop(mat, ...) %>%
+        tibble::as_tibble(rownames = "ADT") %>%
+        tidyr::pivot_longer(cols = -ADT)
 }

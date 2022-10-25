@@ -5,16 +5,15 @@
 #'@description Intended for exploratory analysis, contexts are not necessarily
 #'genuine cell types.
 #'
-#'@param mat A matrix of raw antibody tag counts
+#'@param prop_t A table of proportions, in long format (use get_prop_long to
+#'create it)
 #'@param pct_threshold  Minimum read percentage within a cell to consider 
 #'(Default: 5)
 #'@param min_cells Number of cells in which a marker should reach the minimum
 #'percentage
 #'@export
-getContexts <- function(mat, pct_threshold = 5, min_cells = 5){
+getContexts <- function(prop_long, pct_threshold = 5, min_cells = 5){
 
-    prop_long <- get_prop_long(mat)
-    
     # Get contexts in which marker ever passes threshold
     
     # All cells appear in all_contexts table because above ensures one marker
@@ -44,6 +43,7 @@ getContexts <- function(mat, pct_threshold = 5, min_cells = 5){
         
     return(contexts)
 }
+
 
 
 # expandContexts ----

@@ -1,6 +1,9 @@
-wrtContext <- function(mat, marker, marker_pct = 0.2, pct_cutoff = 0.05){
-    prop_t <-  prop.table(mat, margin = 2)
-    # Marker of interest should be positive
+# Subset mat to return cells where marker is positive, with cols ordered by
+# marker percent
+wrtContext <- function(mat, marker, marker_pct = 0.2){
+    # Get ADT proportions per cell
+    prop_t <-  proportions(mat, margin = 2)
+    # Keep cells where marker of interest is positive (at least marker_pct)
     prop_t <- prop_t[, prop_t[marker, ] >= marker_pct]
     # Order columns by decreasing marker pct
     prop_t <- prop_t[, order(prop_t[marker, ], decreasing = TRUE)] %>%
@@ -10,40 +13,62 @@ wrtContext <- function(mat, marker, marker_pct = 0.2, pct_cutoff = 0.05){
 
 
 # Idea - noise reads should be equally distributed between contexts
+# Note that if there are a lot of markers they may never reach threshold
 
-plotNoiseDistn <- function(mat, pct_threshold = 20, n_per_cluster = 10){
-    # Filter rows and columns of matrix first?s
+#@pct_threshold Percentage (Default: 15)
+#@n_per_context Number of cells ranked by read proportion to use
+# in each point - note that they will not be the same cells across markers
+# (Default: 10) 
+#@tolerance (Default 5)
+plotNoiseDistn <- function(mat, pct_threshold = 15, n_per_context = 10,
+                           tolerance = 5){
     
-    # note redundant, get contexts also calculates prop t
-    pos_contexts <- foreCITE:::getContexts(mat, pct_threshold = pct_threshold)
-    prop_t <- get_prop(mat)
-    # Remove antibodies with all zeroes
-    prop_t <- prop_t[rowSums(prop_t[, 2:ncol(prop_t)]) > 0, ]
+    # Note that rows and columns are filtered in get_prop
+    prop_long <- get_prop_long(mat, filter_pct = 5, filter_ncells = 5) 
     
+    # TO DO: INTEGRATE THIS INTO getContexts
+    # Get contexts -----
+    # Get clear contexts - put a cell size cutoff too?
+    # If a cell is within "tolerance" of being assigned to a clear (child)?
+    # context, assign it to that context.
+    pos_contexts <- getContexts(prop_long, pct_threshold = pct_threshold)
+    exp_contexts <- getContexts(prop_long,
+                                pct_threshold = pct_threshold - tolerance)
+    # Only keep contexts that meet the original threshold
+    exp_contexts <- exp_contexts %>%
+        dplyr::select(-n_cells) %>%
+        dplyr::filter(context %in% pos_contexts$context)
+    
+    pos_contexts <- pos_contexts %>%
+        dplyr::select(-n_cells) %>%
+        # keep only cells that aren't in exp_contexts
+        dplyr::filter(! name %in% pos_contexts$name) %>%
+        # replace original values with expanded contexts
+        dplyr::full_join(exp_contexts)
+    
+    # Match cells to contexts ----
     cell_to_cxt <- pos_contexts %>%
         dplyr::select(name, context) %>%
         unique()
-    cn_to_cxt <- match(cell_to_cxt$name, colnames(prop_t))
-    colnames(prop_t)[cn_to_cxt] <- cell_to_cxt$context
     
-    # Collect all ungrouped cells into a "None" category
-    # As it's a tibble, the first column is the marker name
-    colnames(prop_t)[setdiff(seq_len(ncol(prop_t)), c(1, cn_to_cxt))] <- "None"
-
-    prop_long <- tidyr::pivot_longer(prop_t, cols = -ADT) %>%
-        dplyr::group_by(ADT, name) %>%
-        dplyr::mutate(context_mean = mean(value))
+    # Cells without an assigned context will be labelled "None"
+    cn_to_cxt <- structure(rep("None", ncol(mat)),
+                           names = colnames(mat))
+    cn_to_cxt[cell_to_cxt$name] <- cell_to_cxt$context
     
-    # Select top n per cluster, get mean (idea: are there cells which are close)
+    # Get summary statistic by context and marker ----
+    # Select top n per cluster, get mean
+    # (idea: want to know if noise is evenly distributed)
     prop_long_cut <- prop_long %>%
-        dplyr::slice_max(value, n = n_per_cluster) %>%
+        dplyr::mutate(name = cn_to_cxt[name]) %>%
+        dplyr::group_by(ADT, name) %>%
+        dplyr::slice_max(value, n = n_per_context) %>%
         dplyr::summarise(sliced_mean = mean(value))
     
+    # Order for heatmap ----
     
     # hacky way to get clustering order rather than making a proper heatmap
-    
-    # split by difference in mean in vs out of context
-    
+    # split by difference in mean in vs out of context?
     prop_cut <- prop_long_cut %>%
         tidyr::pivot_wider(names_from = name,
                            values_from = sliced_mean) %>%
@@ -56,10 +81,9 @@ plotNoiseDistn <- function(mat, pct_threshold = 20, n_per_cluster = 10){
     
     prop_long_cut <- prop_long_cut %>%
         dplyr::mutate(ADT = factor(ADT, levels = row_ord),
-                      name = factor(name, levels = col_ord)) %>%
-        dplyr::mutate(in_context = grepl(ADT, name))
+                      name = factor(name, levels = col_ord)) 
     
-    
+    # Plot ----
     spectral <- colorRampPalette(
         rev(RColorBrewer::brewer.pal(11, "Spectral")))
     
@@ -103,3 +127,5 @@ plotNoiseDistn <- function(mat, pct_threshold = 20, n_per_cluster = 10){
 # None category influencing clustering
 # would be good to see if the markers have "positive peaks" - and if so does
 # the pctage expression come from positive or negative peak
+
+# On average, what pct do the "positive" markers account for?
