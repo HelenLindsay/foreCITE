@@ -1,3 +1,4 @@
+# wrtContext ----
 # Subset mat to return cells where marker is positive, with cols ordered by
 # marker percent
 wrtContext <- function(mat, marker, marker_pct = 0.2){
@@ -11,7 +12,20 @@ wrtContext <- function(mat, marker, marker_pct = 0.2){
 }
 
 
+child_context_exists <- function(p){
+    p %>%
+        dplyr::mutate(name_l = strsplit(as.character(name), "\\+"),
+                      name_l = mapply(function(x, y){
+                        sprintf("%s+",
+                                paste(sort(unique(c(x, y))), collapse = "+"))  
+                      }, as.character(ADT), name_l),
+                      context_exists = name_l %in% name
+                      ) %>%
+        dplyr::select(-name_l)
+}
 
+
+# plotNoiseDistn ----
 # Idea - noise reads should be equally distributed between contexts
 # Note that if there are a lot of markers they may never reach threshold
 
@@ -63,7 +77,7 @@ plotNoiseDistn <- function(mat, pct_threshold = 15, n_per_context = 10,
         dplyr::mutate(name = cn_to_cxt[name]) %>%
         dplyr::group_by(ADT, name) %>%
         dplyr::slice_max(value, n = n_per_context) %>%
-        dplyr::summarise(sliced_mean = mean(value))
+        dplyr::summarise(sliced_mean = mean(value)) 
     
     # Order for heatmap ----
     
@@ -79,20 +93,40 @@ plotNoiseDistn <- function(mat, pct_threshold = 15, n_per_context = 10,
     row_ord <- rownames(prop_cut_m)[hclust(dist(prop_cut_m))$order]
     col_ord <- colnames(prop_cut_m)[hclust(dist(t(prop_cut_m)))$order]
     
+    # More formating for two colour bars ----
     prop_long_cut <- prop_long_cut %>%
         dplyr::mutate(ADT = factor(ADT, levels = row_ord),
-                      name = factor(name, levels = col_ord)) 
+                      name = factor(name, levels = col_ord)) %>%
+      # Note that this messes up the factor levels  
+      child_context_exists() %>%
+        tidyr::pivot_wider(names_from = context_exists, values_from = sliced_mean)
     
     # Plot ----
     spectral <- colorRampPalette(
         rev(RColorBrewer::brewer.pal(11, "Spectral")))
     
-    p <- ggplot(prop_long_cut, aes(x = name, y = ADT, fill = sliced_mean)) +
-        geom_tile() +
+    p <- ggplot(prop_long_cut %>% filter(! is.na(`TRUE`)),
+                aes(x = name, y = ADT, )) +
+        geom_tile(aes(fill = `TRUE`)) +
         theme_bw() +
-        scale_fill_gradientn(colors = spectral(100),
-                             limits = c(0, 0.2),
-                             oob = scales::squish) +
+        #scale_fill_gradientn(colors = spectral(100),
+        #                     limits = c(0, 0.2),
+        #                     oob = scales::squish) +
+        scale_fill_gradient2("Context exists",
+                             low = "yellow",
+                             mid = "orange",
+                             high = "red")+
+                             #limits = c(0, 0.2),
+                             #oob = scales::squish) +
+        ggnewscale::new_scale("fill") +
+        geom_tile(aes(fill = `FALSE`),
+                  data = prop_long_cut %>% filter(! is.na(`FALSE`))) +
+        scale_fill_gradient("Context doesn't exist",
+                           low = "white",
+                           high = "blue") +
+                           #limits = c(0, 0.2),
+                           #oob = scales::squish) +
+
         scale_x_discrete(position = "top") +
         theme(axis.text.x = element_text(angle = 90, size = 4,
                                          hjust = 0, vjust = 0.5),
@@ -129,3 +163,5 @@ plotNoiseDistn <- function(mat, pct_threshold = 15, n_per_context = 10,
 # the pctage expression come from positive or negative peak
 
 # On average, what pct do the "positive" markers account for?
+
+# Could also group by taking markers that account for e.g. 80% of reads
