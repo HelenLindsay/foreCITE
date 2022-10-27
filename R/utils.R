@@ -91,15 +91,17 @@ rainbow_pal <- function(n){
 #@param filter_ncells Used in conjunction with filter_pct
 get_prop <- function(mat, row_sums = 0, col_sums = 10,
                      filter_pct = NA, filter_ncells = NA){
+  
     # Filter out ADTs or cells with no counts
-    mat <- mat[rowSums(mat) > row_sums, colSums(mat) >= col_sums]
-    
+    mat <- as.matrix(mat)
+    mat <- mat[rowSums(mat) > row_sums, colSums(mat) >= col_sums, drop = FALSE]
+
     # Get read proportions
     prop_t <- proportions(mat, margin = 2) 
     
     # Filter by minimum percentage in minimum number of cells
     if (! is.na(filter_pct) & ! is.na(filter_ncells)){
-        if (! (filter_pct >= 0 & filter_pct <= 0)){
+        if (! (filter_pct >= 0 & filter_pct <= 100)){
             stop("filter_pct should be a percent, i.e. between 0 and 100")
         }
         prop_t <- prop_t[rowSums(prop_t >= filter_pct/100) >= filter_ncells, 
