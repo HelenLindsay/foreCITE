@@ -87,17 +87,21 @@ plotNoiseDistn <- function(mat, pct_threshold = 15, n_per_context = 10,
     spectral <- colorRampPalette(
         rev(RColorBrewer::brewer.pal(11, "Spectral")))
     
+    legend_lab <- sprintf("Mean expr top %s cells", n_per_context)
+    
     p <- ggplot(prop_long_cut, aes(x = name, y = ADT, fill = sliced_mean)) +
         geom_tile() +
         theme_bw() +
-        scale_fill_gradientn(colors = spectral(100),
+        scale_fill_gradientn(legend_lab,
+                             colors = spectral(100),
                              limits = c(0, 0.2),
                              oob = scales::squish) +
         scale_x_discrete(position = "top") +
         theme(axis.text.x = element_text(angle = 90, size = 4,
                                          hjust = 0, vjust = 0.5),
-              axis.text.y = element_text(size = 6)) + 
-        labs(y = "Context")
+              axis.text.y = element_text(size = 5),
+              axis.ticks.x = element_blank()) + 
+        labs(y = "ADT", x = "ADT co-occurrence")
     
    return(p)    
 }
