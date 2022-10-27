@@ -37,7 +37,7 @@ child_context_exists <- function(p){
 plotNoiseDistn <- function(mat, pct_threshold = 15, n_per_context = 10,
                            tolerance = 5){
     
-    # Note that rows and columns are filtered in get_prop
+    # Note that this includes filtering low count antibodies and cells
     prop_long <- get_prop_long(mat, filter_pct = 5, filter_ncells = 5) 
     
     # TO DO: INTEGRATE THIS INTO getContexts
@@ -69,7 +69,7 @@ plotNoiseDistn <- function(mat, pct_threshold = 15, n_per_context = 10,
     cn_to_cxt <- structure(rep("None", ncol(mat)),
                            names = colnames(mat))
     cn_to_cxt[cell_to_cxt$name] <- cell_to_cxt$context
-    
+
     # Get summary statistic by context and marker ----
     # Select top n per cluster, get mean
     # (idea: want to know if noise is evenly distributed)
@@ -77,13 +77,15 @@ plotNoiseDistn <- function(mat, pct_threshold = 15, n_per_context = 10,
         dplyr::mutate(name = cn_to_cxt[name]) %>%
         dplyr::group_by(ADT, name) %>%
         dplyr::slice_max(value, n = n_per_context) %>%
-        dplyr::summarise(sliced_mean = mean(value)) 
+        dplyr::summarise(sliced_mean = mean(value),
+                         n_cells = unique(n_cells)) 
     
     # Order for heatmap ----
     
     # hacky way to get clustering order rather than making a proper heatmap
     # split by difference in mean in vs out of context?
     prop_cut <- prop_long_cut %>%
+        dplyr::select(-n_cells) %>%
         tidyr::pivot_wider(names_from = name,
                            values_from = sliced_mean) %>%
         ungroup()
@@ -96,16 +98,16 @@ plotNoiseDistn <- function(mat, pct_threshold = 15, n_per_context = 10,
     # More formating for two colour bars ----
     prop_long_cut <- prop_long_cut %>%
         dplyr::mutate(ADT = factor(ADT, levels = row_ord),
-                      name = factor(name, levels = col_ord)) %>%
+                      name = factor(name, levels = col_ord)) #%>%
       # Note that this messes up the factor levels  
-      child_context_exists() %>%
-        tidyr::pivot_wider(names_from = context_exists, values_from = sliced_mean)
+      #child_context_exists() %>%
+      #  tidyr::pivot_wider(names_from = context_exists, values_from = sliced_mean)
     
     # Plot ----
     spectral <- colorRampPalette(
         rev(RColorBrewer::brewer.pal(11, "Spectral")))
     
-    legend_lab <- sprintf("Mean expr top %s cells", n_per_context)
+    legend_lab <- sprintf("Mean expr\ntop %s cells", n_per_context)
     
     p <- ggplot(prop_long_cut, aes(x = name, y = ADT, fill = sliced_mean)) +
         geom_tile() +
@@ -120,6 +122,22 @@ plotNoiseDistn <- function(mat, pct_threshold = 15, n_per_context = 10,
               axis.text.y = element_text(size = 5),
               axis.ticks.x = element_blank()) + 
         labs(y = "ADT", x = "ADT co-occurrence")
+    
+    n_cells <- as_tibble(table(cn_to_cxt)) %>%
+        mutate(cn_to_cxt = factor(cn_to_cxt, levels = col_ord))
+    
+    # Column annotation - number of cells per group
+    q <- ggplot(n_cells, aes(x = cn_to_cxt, y = 1, fill = n)) +
+        geom_tile() +
+        scale_fill_gradient("Number of cells", trans = "log10") +
+        theme(axis.text.y = element_blank(),
+              axis.ticks.y = element_blank(),
+              axis.ticks.x = element_blank(),
+              axis.text.x = element_text(size = 2, angle = 90)) +
+        scale_y_continuous(expand = c(0, 0)) +
+        labs(x = NULL, y = NULL) 
+
+        
 
     # Heatmap split by whether the "background" context exists
     #p <- ggplot(prop_long_cut %>% filter(! is.na(`TRUE`)),

@@ -82,6 +82,30 @@ rainbow_pal <- function(n){
 }
 
 
+# filter_counts ----
+# filter ADTs (rows) by total count across cells, and cells (columns)
+# by total ADT count
+filter_counts <- function(mat, row_sums = 0, col_sums = 10){
+    
+    # Filter out ADTs or cells with no counts
+    mat <- as.matrix(mat)
+    adt_pos <- rowSums(mat) > row_sums
+    
+    if (any(! adt_pos)){
+        message(sprintf("Removing ADTs with total count <= %s:\n%s",
+                        row_sums,
+                        paste(rownames(mat)[! adt_pos], collapse = ", ")))    
+    }
+    
+    cell_pos <- colSums(mat) >= col_sums
+    if (any(! cell_pos)){
+        message(sprintf("Removing %s cells with total ADT count < %s",
+                        sum(! cell_pos), col_sums))
+    }
+    
+    return(mat[adt_pos, cell_pos, drop = FALSE])
+}
+
 # get_prop ----
 # Get prop.table - wrapper to ensure no all-zero columns or rows
 #@param row_sums Minimum value for row sums (Default: 0)
@@ -92,9 +116,7 @@ rainbow_pal <- function(n){
 get_prop <- function(mat, row_sums = 0, col_sums = 10,
                      filter_pct = NA, filter_ncells = NA){
   
-    # Filter out ADTs or cells with no counts
-    mat <- as.matrix(mat)
-    mat <- mat[rowSums(mat) > row_sums, colSums(mat) >= col_sums, drop = FALSE]
+    mat <- filter_counts(mat, row_sums = row_sums, col_sums = col_sums)
 
     # Get read proportions
     prop_t <- proportions(mat, margin = 2) 
