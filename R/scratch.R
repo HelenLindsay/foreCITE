@@ -196,3 +196,9 @@ plotNoiseDistn <- function(mat, pct_threshold = 15, n_per_context = 10,
 # On average, what pct do the "positive" markers account for?
 
 # Could also group by taking markers that account for e.g. 80% of reads
+
+# What is background and what is signal? 
+# Want to get some true negatives - this cell does not express this combination
+# of markers
+
+# Plot protein against the n most frequent other proteins?
