@@ -15,21 +15,34 @@ density_ridge_plot <- function(prop_long){
            x = "% of reads within a cell")
 }
 
-# distribution of counts coloured by percentage -----
-# or count versus percentage in cell
-
-# Plot proportion of reads in different contexts -----
-
-# Contexts with and without a high background marker
-
-
 # Table of top ranking antibody combinations -----
 
+# If using order, use Rfast::colOrder
 
 scratch <- function(){
 
 
 ranks <- apply(-cite_prop, 2, rank, ties.method = "random")
+
+marker_order <- apply(mat, 2, order, decreasing = TRUE)
+#marker_order <- Rfast::colOrder(mat, descending = TRUE) # No col names
+
+# What percentage of noise do we accept?
+# What percentage of reads is "positive?"
+cutoff = 0.5 # 50% of the reads -> 5169 "phenotypes" in Kotliarov
+cumsums <- lapply(seq_len(ncol(prop_t)), function(i){
+    cs <- cumsum(prop_t[marker_order[,i], i])
+    cs <- names(cs[cs <= cutoff])
+    cs
+    })#, vector(nrow(prop_t), mode = "double"))
+
+# fcumsum applies same order to all columns
+#cs <- collapse::fcumsum(prop_t, o = asplit(marker_order, 2))
+
+# table of elements
+# as.data.frame(cbind(vec = unique(q), n = tabulate(match(q, unique(q)))))
+
+
 frac_in_cell <- 0.05
 ranks[cite_prop < frac_in_cell] <- 0
 
@@ -157,19 +170,15 @@ ggplot(prop_long, aes(x = name, y = Percentage, fill = ADT)) +
     labs(x = "Cell") + 
     scale_fill_manual(values = rev(pal30)) + 
     scale_y_continuous(expand = c(0, 0))
-
 }
+
 
 # Notes -----
 
-# Cutoff?
-
+# Are "background" reads evenly distributed?
+# Is background % fairly constant across cell size?
 # Do you need a certain umi count before you see an antibody
 # (because others are soaking up read space)
-
-# Are "background" reads evenly distributed?
-
-# Typical cell gating schema?
 
 # top phenotypes by percentage reads, colour by average percentage of reads
 # when it has that rank
@@ -179,7 +188,3 @@ ggplot(prop_long, aes(x = name, y = Percentage, fill = ADT)) +
 
 # Group by the top n, combo, subsample from each group
 # arrange by rowsum?
-
-# Amongst cells that have the same combination of markers, do we see 
-
-# Percentage reads rna size
