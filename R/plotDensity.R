@@ -1,3 +1,43 @@
+#'@importFrom methods setGeneric
+#'@export
+setGeneric("adtDensity", signature = c("obj"),
+           function(obj, ...) {
+               standardGeneric("adtDensity")
+           })
+
+
+# adtDensity for signature matrix ------
+#'@importFrom methods setMethod 
+#'@export
+setMethod("adtDensity", "Matrix")
+function(obj, ..., assay = "ADT") {
+    
+}
+
+
+# adtDensity for signature SingleCellExperiment ------
+#'@importFrom methods setMethod 
+#'@importFrom SingleCellExperiment assays 
+#'@importClassesFrom SingleCellExperiment SingleCellExperiment
+#'@export
+setMethod("adtDensity", "SingleCellExperiment")
+          function(obj, ..., assay = "ADT") {
+              
+              if (assay %in% names(assays(obj))){
+                  return(adtDensity(assays(obj)[[assay]], ...))
+              }
+              is_alt <- assay %in% SingleCellExperiment::altExpNames(obj)
+              
+              if (isTRUE(is_alt)){
+                  adt <- altExps(SingleCellExperiment)[[assay]]
+                  return(adtDensity(adt, ...))
+              } 
+              
+              stop(sprintf("Assay %s not found\n", assay))
+}
+
+
+
 # plotDensity ----
 # Optional: for SingleCellExperiment signature, allow row filtering
 #'@title plotDensity
@@ -7,7 +47,6 @@
 #'@param group logical(1) Should each row be plotted separately?  If TRUE,
 #'each row will be plotted in a separate colour (Default: FALSE)
 #'@return a ggplot2 plot
-
 plotDensity <- function(m, xlab = "Log10(count)", group = FALSE){
     m_long <- cells_to_long(m)
     if (isTRUE(group)){

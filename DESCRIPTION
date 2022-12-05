@@ -15,7 +15,9 @@ Imports:
     ggplot2,
     magrittr,
     methods,
-    rlang
+    rlang,
+    SingleCellExperiment,
+    SummarizedExperiment
 Suggests:
     BiocGenerics,
     DataVisualizations,
